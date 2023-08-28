@@ -8,7 +8,7 @@ import java.util.Scanner;
 
 import com.mystudy.common.CommonJDBCUtil;
 
-public class CAFE_Scanner {
+public class CAFE_OVERALL {
     public static void main(String[] args) {
         try (Connection conn = CommonJDBCUtil.getConnection()) {
             Scanner scanner = new Scanner(System.in);
@@ -214,7 +214,7 @@ public class CAFE_Scanner {
                         	activateUser(connection, custid);
                         	break;
                         case 4:
-                            System.out.println("처음으로 돌아갑니다.");
+                            System.out.println("이전화면으로 돌아갑니다.");
                             break;
                         default:
                             System.out.println("메뉴를 다시 선택해주세요.");
