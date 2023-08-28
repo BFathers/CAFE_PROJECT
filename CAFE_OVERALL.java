@@ -1,4 +1,4 @@
-package com.mystudy.practice;
+package com.mystudy.practice;ㅇ
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
