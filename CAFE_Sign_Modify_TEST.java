@@ -30,7 +30,22 @@ public class CAFE_Sign_Modify_TEST {
                     	dao.performSignUp(conn, scanner); // 회원가입
                         break;
                     case 3:
-                    	dao.retrieveAndUpdateUserInfo(conn, scanner); // 회원조회
+                        System.out.println("1. 개별 고객 조회");
+                        System.out.println("2. 전체 회원 조회");
+                        System.out.print("메뉴를 선택하세요: ");
+                        int subChoice = scanner.nextInt();
+                        scanner.nextLine(); // 입력 버퍼 비우기
+
+                        switch (subChoice) {
+                            case 1:
+                                dao.retrieveAndUpdateUserInfo(conn, scanner); // 개별 고객 조회
+                                break;
+                            case 2:
+                                dao.retrieveAllUsers(conn); // 전체 회원 조회
+                                break;
+                            default:
+                                System.out.println("올바른 메뉴를 선택하세요.");
+                        }
                         break;
                     case 4:
                         System.out.println("프로그램을 종료합니다.");

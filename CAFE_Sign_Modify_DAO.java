@@ -134,10 +134,11 @@ public class CAFE_Sign_Modify_DAO {
 	// 회원 가입시 STAMP 테이블 STAMPID, CUSTID에도 1 자동 입력 (회원 가입시 1씩 증가되어 들어감)
 	public static void addStampAndCoupon(Connection connection, int custid) {
 	    try {
-	        String insertQuery = "INSERT INTO STAMP (STAMPID, CUSTID) VALUES (?, ?)";
+	        String insertQuery = "INSERT INTO STAMP (STAMPID, STAMPCNT, CUSTID) VALUES (?, ?, ?)";
 	        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
 	            preparedStatement.setInt(1, custid); // 스탬프 테이블의 STAMPID 컬럼에 CUSTID 값을 삽입
-	            preparedStatement.setInt(2, custid); // 스탬프 테이블의 CUSTID 컬럼에 CUSTID 값을 삽입
+	            preparedStatement.setInt(2, 0); // 스탬프 테이블의 STAMPID 컬럼에 CUSTID 값을 삽입
+	            preparedStatement.setInt(3, custid); // 스탬프 테이블의 CUSTID 컬럼에 CUSTID 값을 삽입
 	            preparedStatement.executeUpdate();
 	        }
 	        
@@ -188,6 +189,44 @@ public class CAFE_Sign_Modify_DAO {
         }
     }
     
+    // 전체 회원 조회
+    public static void retrieveAllUserInfo(Connection connection) {
+        String selectQuery =  "SELECT "
+                + "    CST.CUSTID, "
+                + "    CST.CUSTNAME, "
+                + "    CST.PASSWORD, "
+                + "    CST.PHONE, "
+                + "    CST.STATUS, "
+                + "    STP.STAMPCNT, "
+                + "    C.COUPONCNT "
+                + "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID "
+                + "JOIN COUPON C ON STP.STAMPID = C.STAMPID";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+            while (resultSet.next()) {
+                int custid = resultSet.getInt("CUSTID");
+                String custname = resultSet.getString("CUSTNAME");
+                String password = resultSet.getString("PASSWORD");
+                String phone = resultSet.getString("PHONE");
+                String status = resultSet.getString("STATUS");
+                int stampcnt = resultSet.getInt("STAMPCNT");
+                int couponcnt = resultSet.getInt("COUPONCNT");
+
+                System.out.println("회원 정보");
+                System.out.println("고객 번호 : " + custid);
+                System.out.println("이름 : " + custname);
+                System.out.println("비밀번호 : " + password);
+                System.out.println("핸드폰 번호 : " + phone);
+                System.out.println("계정 상태 : " + status);
+                System.out.println("스탬프 개수 : " + stampcnt + ", 쿠폰 개수 : " + couponcnt);
+                System.out.println("==============================");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
 	// 3. 회원 조회 (하기 위해서는 자신의 고유 번호를 입력) 그리고 조회 한 후 1.수정, 2.탈퇴, 3.복구, 4.이전으로 선택지 등장
     public static void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
         while (true) {
@@ -225,6 +264,7 @@ public class CAFE_Sign_Modify_DAO {
                     int stampcnt = resultSet.getInt("STAMPCNT");
                     int couponcnt = resultSet.getInt("COUPONCNT");
 
+                    System.out.println();
                     System.out.println("회원 정보");
                     System.out.println("고객 번호 : " + custid);
                     System.out.println("이름 : " + custname);
@@ -298,7 +338,10 @@ public class CAFE_Sign_Modify_DAO {
             }
         }
     }
+
+
+	public void retrieveAllUsers(Connection connection) {
+		retrieveAllUserInfo(connection);
+	}
 	
 }  
-    // 다른 메서드들 (updateUserInfo, deactivateUser, activateUser 등)도 추가해야합니다.
-    // 위의 getCustomerInfo 메서드와 비슷한 방식으로 작성하면 됩니다.
