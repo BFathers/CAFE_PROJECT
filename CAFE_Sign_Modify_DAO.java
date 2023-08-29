@@ -157,7 +157,7 @@ public class CAFE_Sign_Modify_DAO {
 	    }
 	}
 	
-	// 2.회원 가입 [CUSTID(초기값 1 자동입력), CUSTNAME, PASSWORD, PHONENUMBER 차례대로 입력하면 customer 테이블에 값을 넣어준다.]
+	// 회원가입할때 적었던 정보들을 CUSTOMER 테이블에 넣어준다.
 	public static void saveToDatabase(Connection connection, int id, String name, String password, String phoneNumber) {
         try {
             String insertQuery = "INSERT INTO CUSTOMER (CUSTID, CUSTNAME, PASSWORD, PHONE) VALUES (?, ?, ?, ?)";
@@ -174,7 +174,7 @@ public class CAFE_Sign_Modify_DAO {
         }
     }
 	
-	//회원 정보 업데이트 메서드
+	// 회원 정보 업데이트 메서드 (CUSTOMER 테이블의 고객아이디를 조회해 정보들을 업데이트)
     public static void updateUserInfo(Connection connection, int custid, String newName, String newPassword, String newPhone) {
         String updateQuery = "UPDATE CUSTOMER SET CUSTNAME = ?, PASSWORD = ?, PHONE = ? WHERE CUSTID = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -189,7 +189,7 @@ public class CAFE_Sign_Modify_DAO {
         }
     }
     
-    // 전체 회원 조회
+    // 회원 조회에서 2. 전체 회원 조회
     public static void retrieveAllUserInfo(Connection connection) {
         String selectQuery =  "SELECT "
                 + "    CST.CUSTID, "
@@ -227,7 +227,7 @@ public class CAFE_Sign_Modify_DAO {
         }
     }
     
-	// 3. 회원 조회 (하기 위해서는 자신의 고유 번호를 입력) 그리고 조회 한 후 1.수정, 2.탈퇴, 3.복구, 4.이전으로 선택지 등장
+	// 회원 조회에서 1. 개별 고객 조회
     public static void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
         while (true) {
             System.out.print("해당 고객 번호를 입력하세요 (0을 입력하면 처음으로 돌아갑니다): ");
