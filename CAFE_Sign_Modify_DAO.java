@@ -45,7 +45,7 @@ public class CAFE_Sign_Modify_DAO {
  
 
     // 회원 비활성화 메서드
-    public void deactivateUser(Connection connection, int custid) {
+    public static void deactivateUser(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE CUSTOMER SET STATUS = 'INACTIVE' WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -63,7 +63,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 
     // 회원 활성화 메서드
-    public void activateUser(Connection connection, int custid) {
+    public static void activateUser(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE CUSTOMER SET STATUS = 'ACTIVE' WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -77,7 +77,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 
     // 스탬프 개수 초기화 메서드
-    public void resetStampCount(Connection connection, int custid) {
+    public static void resetStampCount(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE STAMP SET STAMPCNT = 0 WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -104,7 +104,7 @@ public class CAFE_Sign_Modify_DAO {
 
     // 회원가입 (custid, custname, password, phone) 입력 후  saveToDatabase로 저장 
     // 그리고 custid 값을 stamp, coupon custid, stampid, couponid에 같이
-	public void performSignUp(Connection connection, Scanner scanner) {
+	public static void performSignUp(Connection connection, Scanner scanner) {
 		String custname, password, phone;
     try {
         String getSeqQuery = "SELECT CUSTID_SEQ.NEXTVAL FROM DUAL";
@@ -115,14 +115,38 @@ public class CAFE_Sign_Modify_DAO {
 
                 System.out.println("고객 번호: " + custid);
              
-                System.out.print("이름을 입력하세요 : ");
-                custname = scanner.nextLine();
-
-                System.out.print("비밀번호를 입력하세요 : ");
-                password = scanner.nextLine();
-
-                System.out.print("핸드폰 번호를 입력하세요 : ");
-                phone = scanner.nextLine();
+               
+                while (true) {
+                    System.out.print("이름을 입력하세요 (빈 문자열 제외): ");
+                    custname = scanner.nextLine();
+                         //빈문자열인지아닌지
+                    if (!custname.isEmpty() && !containsNumber(custname)) {
+                        break;
+                    } else {
+                        System.out.println("▶▷▶▷ 이름을 다시 입력해주세요.");
+                    }
+                }
+                
+            
+                while (true) {
+                	System.out.print("비밀번호를 입력하세요 (알파벳, 숫자 포함 7자 이상): ");
+                	password = scanner.nextLine();
+                	if (isValidPassword(password)) {
+                        break;
+                    } else {
+                    	System.out.println("▶▷▶▷ 7자 이상 다시 작성해주세요.");
+                    }
+                }
+                
+                while (true) {
+                	System.out.print("핸드폰 번호를 입력하세요 (010-0000-0000 형식): ");
+                	phone = scanner.nextLine();
+                	if (isValidPhoneNumber(phone)) {
+                		break;
+                	} else {
+                		System.out.println("010-0000-0000 형식으로 다시 입력해주세요.");
+                	}
+                }
 
                 saveToDatabase(connection, custid, custname, phone, password); // 회원 정보 저장
                 addStamp(connection, custid);
@@ -130,11 +154,13 @@ public class CAFE_Sign_Modify_DAO {
             }
         }
     } catch (SQLException e) {
-        e.printStackTrace();
+        System.err.println("▶▷▶▷ 회원 가입 중 오류가 발생했습니다.");
+        //e.printStackTrace();
     }
 }	
+	
 	// 회원 가입시 STAMP 테이블 STAMPID, CUSTID에도 1 자동 입력 (회원 가입시 1씩 증가되어 들어감)
-	public void addStamp(Connection connection, int custid) {
+	public static void addStamp(Connection connection, int custid) {
 	    try {
 	        String insertQuery = "INSERT INTO STAMP (STAMPID, STAMPCNT, CUSTID) VALUES (?, ?, ?)";
 	        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
@@ -160,7 +186,7 @@ public class CAFE_Sign_Modify_DAO {
 	}
 	
 	// 회원가입할때 적었던 정보들을 CUSTOMER 테이블에 넣어준다.
-	public void saveToDatabase(Connection connection, int id, String name, String password, String phoneNumber) {
+	public static void saveToDatabase(Connection connection, int id, String name, String password, String phoneNumber) {
         try {
             String insertQuery = "INSERT INTO CUSTOMER (CUSTID, CUSTNAME, PASSWORD, PHONE) VALUES (?, ?, ?, ?)";
             try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
@@ -177,7 +203,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 	
 	// 회원 정보 업데이트 메서드 (CUSTOMER 테이블의 고객아이디를 조회해 정보들을 업데이트)
-    public void updateUserInfo(Connection connection, int custid, String newName, String newPassword, String newPhone) {
+    public static void updateUserInfo(Connection connection, int custid, String newName, String newPassword, String newPhone) {
         String updateQuery = "UPDATE CUSTOMER SET CUSTNAME = ?, PASSWORD = ?, PHONE = ? WHERE CUSTID = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
             preparedStatement.setString(1, newName);
@@ -192,16 +218,17 @@ public class CAFE_Sign_Modify_DAO {
     }
     
     // 회원 조회에서 2. 전체 회원 조회
-    public void retrieveAllUserInfo(Connection connection) {
+    public static void retrieveAllUserInfo(Connection connection) {
         String selectQuery =  "SELECT "
                 + "    CST.CUSTID, "
                 + "    CST.CUSTNAME, "
                 + "    CST.PASSWORD, "
                 + "    CST.PHONE, "
-                + "    CST.STATUS, "
-                + "    STP.STAMPCNT "
+                + "    STP.STAMPCNT, "
+                + "    CST.STATUS "
                 //+ "    C.COUPONCNT "
-                + "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID ";
+                + " FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID "
+                + " ORDER BY CUSTID ";
                 //+ "JOIN COUPON C ON STP.STAMPID = C.STAMPID";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery);
@@ -211,21 +238,45 @@ public class CAFE_Sign_Modify_DAO {
                 String custname = resultSet.getString("CUSTNAME");
                 String password = resultSet.getString("PASSWORD");
                 String phone = resultSet.getString("PHONE");
-                String status = resultSet.getString("STATUS");
                 int stampcnt = resultSet.getInt("STAMPCNT");
+                String status = resultSet.getString("STATUS");
                //int couponcnt = resultSet.getInt("COUPONCNT");
                 
-                System.out.println("고객 번호 : " + custid + ", 이름 : " + custname + ", 비밀번호 : " + password +", 핸드폰 번호 : " + phone + ", 계정 상태 : " + status + ", 스탬프 개수 : " + stampcnt);
-                //System.out.println("==============================");
+                System.out.println("회원ID:" + custid + ", 이름 : " + custname + ", 비밀번호 : " + password + 
+                		", 핸드폰 번호 : " + phone + ", 스탬프 개수 : " + stampcnt + ", 계정 상태 : " + status);
+                
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        }
+        } 
     }
     
+	// 회원 조회에서 1. 개별 고객 조회
+    public static void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
+        while (true) {
+            System.out.print("해당 고객 번호를 입력하세요 (0을 입력하면 처음으로 돌아갑니다): ");
+            
+            int custid = scanner.nextInt();
+            scanner.nextLine(); // 입력 버퍼 비우기
 
-    // 개별 회원번호 조회시 카운트 (회원 조회시 custid값이 존재하는지)
-    public boolean checkIfCustomerExists(Connection connection, int custid) {
+            if (custid == 0) {
+                System.out.println("처음으로 돌아갑니다.");
+                break;
+            }
+
+            
+            boolean customerExists = checkIfCustomerExists(connection, custid);
+
+            if (customerExists) {
+                processCustomerInfo(connection, scanner, custid);
+            } else {
+                System.out.println("▶▷▶▷ 고객 번호를 다시 입력해주세요.");
+            }
+        }
+    }
+
+    // 개별 회원번호 조회시 (회원 조회시 custid값이 존재하는지 카운트)
+    public static boolean checkIfCustomerExists(Connection connection, int custid) {
         String query = "SELECT COUNT(*) FROM CUSTOMER WHERE CUSTID = ?";
     
         try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
@@ -243,31 +294,10 @@ public class CAFE_Sign_Modify_DAO {
         return false;
     }
     
-	// 회원 조회에서 1. 개별 고객 조회
-    public void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
-        while (true) {
-            System.out.print("해당 고객 번호를 입력하세요 (0을 입력하면 처음으로 돌아갑니다): ");
-            
-            int custid = scanner.nextInt();
-            scanner.nextLine(); // 입력 버퍼 비우기
-
-            if (custid == 0) {
-                System.out.println("처음으로 돌아갑니다.");
-                break;
-            }
-            
-            boolean customerExists = checkIfCustomerExists(connection, custid);
-
-            if (customerExists) {
-                processCustomerInfo(connection, scanner, custid);
-            } else {
-                System.out.println("해당 고객 번호가 존재하지 않습니다. 다시 입력해주세요.");
-            }
-        }
-    }
-
-    
-    public void processCustomerInfo(Connection connection, Scanner scanner, int custid) {
+    //회원 조회 (개별 조회해서 정보를 불러들어와 1. 정보수정 2. 회원탈퇴 3. 회원복구 4. 이전으로 선택)
+    public static void processCustomerInfo(Connection connection, Scanner scanner, int custid) {
+    	String newName, newPassword, newPhone;
+    	
     	String selectQuery =  "SELECT "
         		+ "    CST.CUSTID, "
         		+ "    CST.CUSTNAME, "
@@ -320,18 +350,41 @@ public class CAFE_Sign_Modify_DAO {
                 switch (userChoice) {
                     case 1:
                         //updateUserInfo(connection, custid, scanner);
-                        System.out.print("새로운 이름을 입력하세요: ");
-                        String newName = scanner.nextLine();
-
-                        System.out.print("새로운 비밀번호를 입력하세요: ");
-                        String newPassword = scanner.nextLine();
-
-                        System.out.print("새로운 핸드폰 번호를 입력하세요: ");
-                        String newPhone = scanner.nextLine();
-
-                        updateUserInfo(connection, custid, newName, newPassword, newPhone); // 회원 정보 업데이트
-                        System.out.println("정보 수정이 완료되었습니다.");
-                        break;
+                    	
+                    	while (true) {
+                            System.out.print("이름을 입력하세요 (빈 문자열 제외): ");
+                            newName = scanner.nextLine();
+                            if (!custname.isEmpty()) {
+                                break;
+                            } else {
+                                System.out.println("이름을 다시 입력해주세요.");
+                            }
+                        }
+                    	
+                        while (true) {
+	                        System.out.print("새로운 비밀번호를 입력하세요 (알파벳, 숫자 포함 7자 이상): ");
+	                        newPassword = scanner.nextLine();
+	                        if (isValidPassword(newPassword)) {
+	                            break;
+	                        } else {
+	                            System.out.println("▶▷▶▷ 다시 작성해주세요.");
+	                        }
+                        }
+                
+                        while (true) {
+	                        System.out.print("새로운 핸드폰 번호를 입력하세요 (010-0000-0000 형식): ");
+	                        newPhone = scanner.nextLine();
+	                        if (isValidPhoneNumber(newPhone)) {
+	                            break;
+	                        } else {
+	                            System.out.println("▶▷▶▷ 010-0000-0000 형식으로 다시 입력해주세요.");
+	                        }
+                        }
+	                    
+	                        updateUserInfo(connection, custid, newName, newPassword, newPhone); // 회원 정보 업데이트
+	                        System.out.println("정보 수정이 완료되었습니다.");
+	                        break;
+	                        
                     case 2:
                         if (!status.equalsIgnoreCase("INACTIVE")) {
                         	System.out.println("[주의!] 스탬프가 사라집니다.");
@@ -345,7 +398,7 @@ public class CAFE_Sign_Modify_DAO {
                                 // 탈퇴하지 않고 다른 작업 선택
                                 return;
                             } else {
-                                System.out.println("다시 입력해주세요.");
+                                System.out.println("▶▷▶▷다시 입력해주세요.");
                             }
                         } 
                         break;
@@ -357,7 +410,7 @@ public class CAFE_Sign_Modify_DAO {
                         System.out.println("이전화면으로 돌아갑니다.");
                         break;
                     default:
-                        System.out.println("메뉴를 다시 선택해주세요.");
+                        System.out.println("▶▷▶▷메뉴를 다시 선택해주세요.");
                 }
             } 
         } catch (SQLException e) {
@@ -365,11 +418,32 @@ public class CAFE_Sign_Modify_DAO {
         }
     }
 
-    
 
 
 	public void retrieveAllUsers(Connection connection) {
 		retrieveAllUserInfo(connection);
 	}
+	
+	// 회원가입시 비밀번호에 알파벳, 숫자 포함 7자 이상 들어가는 조건
+	private static boolean isValidPassword(String password) {
+
+		return password.matches("^(?=.*[a-zA-Z])(?=.*\\d).{7,}$");
+	}
+
+	// 회원가입시 핸드폰 번호는 010-0000-0000 형식으로 13자리
+	private static boolean isValidPhoneNumber(String phoneNumber) {
+
+	    return phoneNumber.matches("^01[0-9]{1}-[0-9]{3,4}-[0-9]{4}$");
+	}
+	
+	// 회원가입시 이름에 숫자가 포함됐는지 확인 (포함했으면 다시 입력)
+	private static boolean containsNumber(String input) {
+		for (char c : input.toCharArray()) {
+            if (Character.isDigit(c)) {
+                return true;
+            }
+        }
+        return false;
+    }
 	
 }  
