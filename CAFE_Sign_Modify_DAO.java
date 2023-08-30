@@ -1,4 +1,4 @@
-package com.mystudy.practice;
+package com.mystudy.cafetest.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -6,19 +6,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Scanner;
 
-import com.mystudy.common.CommonJDBCUtil;
+import com.mystudy.cafetest.common.CommonJDBCUtil;
+import com.mystudy.cafetest.vo.CAFE_Sign_Modify_VO;
 
 // DAO (Data Access Object) 클래스: 데이터베이스 관련 작업을 수행하는 클래스
 public class CAFE_Sign_Modify_DAO {
 	static Connection conn = null;
 	
     public static CAFE_Sign_Modify_VO getCustomerInfo(Connection connection, int custid) {
-    	conn = CommonJDBCUtil.getConnection();
+    	conn = com.mystudy.cafetest.common.CommonJDBCUtil.getConnection();
     	CAFE_Sign_Modify_VO customer = null;
         String selectQuery =  "SELECT CST.CUSTID, CST.CUSTNAME, CST.PASSWORD, CST.PHONE, CST.STATUS, " +
-                             "STP.STAMPCNT, C.COUPONCNT " +
+                             "STP.STAMPCNT " +
                              "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID " +
-                             "JOIN COUPON C ON STP.STAMPID = C.STAMPID " +
+                             //"JOIN COUPON C ON STP.STAMPID = C.STAMPID " +
                              "WHERE CST.CUSTID = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
@@ -33,7 +34,7 @@ public class CAFE_Sign_Modify_DAO {
                 customer.setPhone(resultSet.getString("PHONE"));
                 customer.setStatus(resultSet.getString("STATUS"));
                 customer.setStampcnt(resultSet.getInt("STAMPCNT"));
-                customer.setCouponcnt(resultSet.getInt("COUPONCNT"));
+                //customer.setCouponcnt(resultSet.getInt("COUPONCNT"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -44,7 +45,7 @@ public class CAFE_Sign_Modify_DAO {
  
 
     // 회원 비활성화 메서드
-    public static void deactivateUser(Connection connection, int custid) {
+    public void deactivateUser(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE CUSTOMER SET STATUS = 'INACTIVE' WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -53,7 +54,7 @@ public class CAFE_Sign_Modify_DAO {
                 int rowsUpdated = preparedStatement.executeUpdate();
                 if (rowsUpdated > 0) {
                     resetStampCount(connection, custid);
-                    resetCouponCount(connection, custid);
+                    //resetCouponCount(connection, custid);
                 }
             }
         } catch (SQLException e) {
@@ -62,7 +63,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 
     // 회원 활성화 메서드
-    public static void activateUser(Connection connection, int custid) {
+    public void activateUser(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE CUSTOMER SET STATUS = 'ACTIVE' WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -76,7 +77,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 
     // 스탬프 개수 초기화 메서드
-    public static void resetStampCount(Connection connection, int custid) {
+    public void resetStampCount(Connection connection, int custid) {
         try {
             String updateQuery = "UPDATE STAMP SET STAMPCNT = 0 WHERE CUSTID = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
@@ -89,20 +90,21 @@ public class CAFE_Sign_Modify_DAO {
     }
 
     // 쿠폰 개수 초기화 메서드
-    public static void resetCouponCount(Connection connection, int custid) {
-        try {
-            String updateQuery = "UPDATE COUPON SET COUPONCNT = 0 WHERE STAMPID = ?";
-            try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-                preparedStatement.setInt(1, custid);
-                preparedStatement.executeUpdate();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    // 회원가입 (custid, custname, password, phone) 입력 후  saveToDatabase로 저장 그리고 custid 값을 stamp, coupon custid, stampid, couponid에 같이
-	public static void performSignUp(Connection connection, Scanner scanner) {
+//    public static void resetCouponCount(Connection connection, int custid) {
+//        try {
+//            String updateQuery = "UPDATE COUPON SET COUPONCNT = 0 WHERE STAMPID = ?";
+//            try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+//                preparedStatement.setInt(1, custid);
+//                preparedStatement.executeUpdate();
+//            }
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//    }
+
+    // 회원가입 (custid, custname, password, phone) 입력 후  saveToDatabase로 저장 
+    // 그리고 custid 값을 stamp, coupon custid, stampid, couponid에 같이
+	public void performSignUp(Connection connection, Scanner scanner) {
 		String custname, password, phone;
     try {
         String getSeqQuery = "SELECT CUSTID_SEQ.NEXTVAL FROM DUAL";
@@ -123,7 +125,7 @@ public class CAFE_Sign_Modify_DAO {
                 phone = scanner.nextLine();
 
                 saveToDatabase(connection, custid, custname, phone, password); // 회원 정보 저장
-                addStampAndCoupon(connection, custid);
+                addStamp(connection, custid);
                 System.out.println("회원가입이 완료되었습니다.");
             }
         }
@@ -132,33 +134,33 @@ public class CAFE_Sign_Modify_DAO {
     }
 }	
 	// 회원 가입시 STAMP 테이블 STAMPID, CUSTID에도 1 자동 입력 (회원 가입시 1씩 증가되어 들어감)
-	public static void addStampAndCoupon(Connection connection, int custid) {
+	public void addStamp(Connection connection, int custid) {
 	    try {
 	        String insertQuery = "INSERT INTO STAMP (STAMPID, STAMPCNT, CUSTID) VALUES (?, ?, ?)";
 	        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
 	            preparedStatement.setInt(1, custid); // 스탬프 테이블의 STAMPID 컬럼에 CUSTID 값을 삽입
-	            preparedStatement.setInt(2, 0); // 스탬프 테이블의 STAMPID 컬럼에 CUSTID 값을 삽입
+	            preparedStatement.setInt(2, 0); // 스탬프 테이블의 STAMPCNT 컬럼에 0을 삽입
 	            preparedStatement.setInt(3, custid); // 스탬프 테이블의 CUSTID 컬럼에 CUSTID 값을 삽입
 	            preparedStatement.executeUpdate();
 	        }
 	        
     // 동시에 COUPON 테이블에도 COUPONCNT, STAMPID 값 입력 (COUPONCNT에는 일단 0을 넣어준다)
-	        String insertCouponQuery = "INSERT INTO COUPON (COUPONID, COUPONCNT, STAMPID) VALUES (?, ?, ?)";
-	        try (PreparedStatement couponStatement = connection.prepareStatement(insertCouponQuery)) {
-	        	
-    // COUPONID는 무슨 값을 넣어야 할까 PK키 지정을 해제하고 (null)값을 디폴트로 넣어주겠다.
-	            couponStatement.setString(1, null);
-	            couponStatement.setInt(2, 0);
-	            couponStatement.setInt(3, custid);
-	            couponStatement.executeUpdate();
-	        }
+//	        String insertCouponQuery = "INSERT INTO COUPON (COUPONID, COUPONCNT, STAMPID) VALUES (?, ?, ?)";
+//	        try (PreparedStatement couponStatement = connection.prepareStatement(insertCouponQuery)) {
+//	        	
+//    // COUPONID는 무슨 값을 넣어야 할까 PK키 지정을 해제하고 (null)값을 디폴트로 넣어주겠다.
+//	            couponStatement.setString(1, null);
+//	            couponStatement.setInt(2, 0);
+//	            couponStatement.setInt(3, custid);
+//	            couponStatement.executeUpdate();
+//	        }
 	    } catch (SQLException e) {
 	        e.printStackTrace();
 	    }
 	}
 	
 	// 회원가입할때 적었던 정보들을 CUSTOMER 테이블에 넣어준다.
-	public static void saveToDatabase(Connection connection, int id, String name, String password, String phoneNumber) {
+	public void saveToDatabase(Connection connection, int id, String name, String password, String phoneNumber) {
         try {
             String insertQuery = "INSERT INTO CUSTOMER (CUSTID, CUSTNAME, PASSWORD, PHONE) VALUES (?, ?, ?, ?)";
             try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
@@ -175,7 +177,7 @@ public class CAFE_Sign_Modify_DAO {
     }
 	
 	// 회원 정보 업데이트 메서드 (CUSTOMER 테이블의 고객아이디를 조회해 정보들을 업데이트)
-    public static void updateUserInfo(Connection connection, int custid, String newName, String newPassword, String newPhone) {
+    public void updateUserInfo(Connection connection, int custid, String newName, String newPassword, String newPhone) {
         String updateQuery = "UPDATE CUSTOMER SET CUSTNAME = ?, PASSWORD = ?, PHONE = ? WHERE CUSTID = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
             preparedStatement.setString(1, newName);
@@ -190,17 +192,17 @@ public class CAFE_Sign_Modify_DAO {
     }
     
     // 회원 조회에서 2. 전체 회원 조회
-    public static void retrieveAllUserInfo(Connection connection) {
+    public void retrieveAllUserInfo(Connection connection) {
         String selectQuery =  "SELECT "
                 + "    CST.CUSTID, "
                 + "    CST.CUSTNAME, "
                 + "    CST.PASSWORD, "
                 + "    CST.PHONE, "
                 + "    CST.STATUS, "
-                + "    STP.STAMPCNT, "
-                + "    C.COUPONCNT "
-                + "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID "
-                + "JOIN COUPON C ON STP.STAMPID = C.STAMPID";
+                + "    STP.STAMPCNT "
+                //+ "    C.COUPONCNT "
+                + "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID ";
+                //+ "JOIN COUPON C ON STP.STAMPID = C.STAMPID";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery);
              ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -211,24 +213,38 @@ public class CAFE_Sign_Modify_DAO {
                 String phone = resultSet.getString("PHONE");
                 String status = resultSet.getString("STATUS");
                 int stampcnt = resultSet.getInt("STAMPCNT");
-                int couponcnt = resultSet.getInt("COUPONCNT");
-
-                System.out.println("회원 정보");
-                System.out.println("고객 번호 : " + custid);
-                System.out.println("이름 : " + custname);
-                System.out.println("비밀번호 : " + password);
-                System.out.println("핸드폰 번호 : " + phone);
-                System.out.println("계정 상태 : " + status);
-                System.out.println("스탬프 개수 : " + stampcnt + ", 쿠폰 개수 : " + couponcnt);
-                System.out.println("==============================");
+               //int couponcnt = resultSet.getInt("COUPONCNT");
+                
+                System.out.println("고객 번호 : " + custid + ", 이름 : " + custname + ", 비밀번호 : " + password +", 핸드폰 번호 : " + phone + ", 계정 상태 : " + status + ", 스탬프 개수 : " + stampcnt);
+                //System.out.println("==============================");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
     
+
+    // 개별 회원번호 조회시 카운트 (회원 조회시 custid값이 존재하는지)
+    public boolean checkIfCustomerExists(Connection connection, int custid) {
+        String query = "SELECT COUNT(*) FROM CUSTOMER WHERE CUSTID = ?";
+    
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setInt(1, custid);
+            ResultSet resultSet = preparedStatement.executeQuery();
+        
+            if (resultSet.next()) {
+                int count = resultSet.getInt(1);
+                return count > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    
+        return false;
+    }
+    
 	// 회원 조회에서 1. 개별 고객 조회
-    public static void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
+    public void retrieveAndUpdateUserInfo(Connection connection, Scanner scanner) { 
         while (true) {
             System.out.print("해당 고객 번호를 입력하세요 (0을 입력하면 처음으로 돌아갑니다): ");
             
@@ -239,105 +255,117 @@ public class CAFE_Sign_Modify_DAO {
                 System.out.println("처음으로 돌아갑니다.");
                 break;
             }
+            
+            boolean customerExists = checkIfCustomerExists(connection, custid);
 
-            String selectQuery =  "SELECT "
-            		+ "    CST.CUSTID, "
-            		+ "    CST.CUSTNAME, "
-            		+ "    CST.PASSWORD, "
-            		+ "    CST.PHONE, "
-            		+ "    CST.STATUS, "
-            		+ "    STP.STAMPCNT, "
-            		+ "    C.COUPONCNT "
-            		+ "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID "
-            		+ "JOIN COUPON C ON STP.STAMPID = C.STAMPID "
-            		+ "WHERE CST.CUSTID = ?";
-
-            try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
-                preparedStatement.setInt(1, custid);
-
-                ResultSet resultSet = preparedStatement.executeQuery();
-                if (resultSet.next()) {
-                    String custname = resultSet.getString("CUSTNAME");
-                    String password = resultSet.getString("PASSWORD");
-                    String phone = resultSet.getString("PHONE");
-                    String status = resultSet.getString("STATUS");
-                    int stampcnt = resultSet.getInt("STAMPCNT");
-                    int couponcnt = resultSet.getInt("COUPONCNT");
-
-                    System.out.println();
-                    System.out.println("회원 정보");
-                    System.out.println("고객 번호 : " + custid);
-                    System.out.println("이름 : " + custname);
-                    System.out.println("비밀번호 : " + password);
-                    System.out.println("핸드폰 번호 : " + phone);
-                    System.out.println("계정 상태 : " + status);
-                    System.out.println("스탬프 개수 : " + stampcnt + ", 쿠폰 개수 : " + couponcnt);
-                    
-
-                    // "ACTIVE" 상태일떄 1. 정보 수정, 2. 회원 탈퇴, 4. 이전으로 만 선택가능
-                    if (!status.equalsIgnoreCase("INACTIVE")) {
-                    	System.out.println("1. 정보 수정");
-                    	System.out.println("2. 회원 탈퇴");
-                    }
-                    
-                    // "INACTIVE" 상태일떄 3. 회원 복구 -> (ACTIVE로 상태 변경)와 4. 이전으로 만 선택가능
-                    if (!status.equalsIgnoreCase("ACTIVE")) {
-
-                    	System.out.println("3. 회원 복구");
-                    }
-                    System.out.println("4. 이전으로");
-                    System.out.print("원하는 작업을 선택하세요: ");
-                    int userChoice = scanner.nextInt();
-                    scanner.nextLine(); // 입력 버퍼 비우기
-
-                    switch (userChoice) {
-                        case 1:
-                            //updateUserInfo(connection, custid, scanner);
-                            System.out.print("새로운 이름을 입력하세요: ");
-                            String newName = scanner.nextLine();
-
-                            System.out.print("새로운 비밀번호를 입력하세요: ");
-                            String newPassword = scanner.nextLine();
-
-                            System.out.print("새로운 핸드폰 번호를 입력하세요: ");
-                            String newPhone = scanner.nextLine();
-
-                            updateUserInfo(connection, custid, newName, newPassword, newPhone); // 회원 정보 업데이트
-                            System.out.println("정보 수정이 완료되었습니다.");
-                            break;
-                        case 2:
-                            if (!status.equalsIgnoreCase("INACTIVE")) {
-                            	System.out.println("[주의!] 스탬프 및 쿠폰이 사라집니다.");
-                                System.out.print("정말 탈퇴하시겠습니까? (y/n): ");
-                                String confirm = scanner.nextLine();
-
-                                if (confirm.equalsIgnoreCase("y")) {
-                                    deactivateUser(connection, custid);
-                                    System.out.println("정상적으로 탈퇴되었습니다.");
-                                } else if (confirm.equalsIgnoreCase("n")) {
-                                    // 탈퇴하지 않고 다른 작업 선택
-                                    continue;
-                                } else {
-                                    System.out.println("다시 입력해주세요.");
-                                }
-                            } 
-                            break;
-                        case 3:
-                        	activateUser(connection, custid);
-                        	System.out.println("정상적으로 복구되었습니다.");
-                        	break;
-                        case 4:
-                            System.out.println("이전화면으로 돌아갑니다.");
-                            break;
-                        default:
-                            System.out.println("메뉴를 다시 선택해주세요.");
-                    }
-                } 
-            } catch (SQLException e) {
-                e.printStackTrace();
+            if (customerExists) {
+                processCustomerInfo(connection, scanner, custid);
+            } else {
+                System.out.println("해당 고객 번호가 존재하지 않습니다. 다시 입력해주세요.");
             }
         }
     }
+
+    
+    public void processCustomerInfo(Connection connection, Scanner scanner, int custid) {
+    	String selectQuery =  "SELECT "
+        		+ "    CST.CUSTID, "
+        		+ "    CST.CUSTNAME, "
+        		+ "    CST.PASSWORD, "
+        		+ "    CST.PHONE, "
+        		+ "    CST.STATUS, "
+        		+ "    STP.STAMPCNT "
+        		//+ "    C.COUPONCNT "
+        		+ "FROM CUSTOMER CST JOIN STAMP STP ON CST.CUSTID = STP.CUSTID "
+        		//+ "JOIN COUPON C ON STP.STAMPID = C.STAMPID "
+        		+ "WHERE CST.CUSTID = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
+            preparedStatement.setInt(1, custid);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                String custname = resultSet.getString("CUSTNAME");
+                String password = resultSet.getString("PASSWORD");
+                String phone = resultSet.getString("PHONE");
+                String status = resultSet.getString("STATUS");
+                int stampcnt = resultSet.getInt("STAMPCNT");
+                //int couponcnt = resultSet.getInt("COUPONCNT");
+
+                System.out.println("회원 정보");
+                System.out.println("고객 번호: " + custid);
+                System.out.println("이름: " + custname);
+                System.out.println("비밀번호: " + password);
+                System.out.println("핸드폰 번호: " + phone);
+                System.out.println("계정 상태: " + status);
+                System.out.println("스탬프 개수: " + stampcnt);
+                
+
+                // "ACTIVE" 상태일떄 1. 정보 수정, 2. 회원 탈퇴, 4. 이전으로 만 선택가능
+                if (!status.equalsIgnoreCase("INACTIVE")) {
+                	System.out.println("1. 정보 수정");
+                	System.out.println("2. 회원 탈퇴");
+                }
+                
+                // "INACTIVE" 상태일떄 3. 회원 복구 -> (ACTIVE로 상태 변경)와 4. 이전으로 만 선택가능
+                if (!status.equalsIgnoreCase("ACTIVE")) {
+
+                	System.out.println("3. 회원 복구");
+                }
+                System.out.println("4. 이전으로");
+                System.out.print("원하는 작업을 선택하세요: ");
+                int userChoice = scanner.nextInt();
+                scanner.nextLine(); // 입력 버퍼 비우기
+
+                switch (userChoice) {
+                    case 1:
+                        //updateUserInfo(connection, custid, scanner);
+                        System.out.print("새로운 이름을 입력하세요: ");
+                        String newName = scanner.nextLine();
+
+                        System.out.print("새로운 비밀번호를 입력하세요: ");
+                        String newPassword = scanner.nextLine();
+
+                        System.out.print("새로운 핸드폰 번호를 입력하세요: ");
+                        String newPhone = scanner.nextLine();
+
+                        updateUserInfo(connection, custid, newName, newPassword, newPhone); // 회원 정보 업데이트
+                        System.out.println("정보 수정이 완료되었습니다.");
+                        break;
+                    case 2:
+                        if (!status.equalsIgnoreCase("INACTIVE")) {
+                        	System.out.println("[주의!] 스탬프가 사라집니다.");
+                            System.out.print("정말 탈퇴하시겠습니까? (y/n): ");
+                            String confirm = scanner.nextLine();
+
+                            if (confirm.equalsIgnoreCase("y")) {
+                                deactivateUser(connection, custid);
+                                System.out.println("정상적으로 탈퇴되었습니다.");
+                            } else if (confirm.equalsIgnoreCase("n")) {
+                                // 탈퇴하지 않고 다른 작업 선택
+                                return;
+                            } else {
+                                System.out.println("다시 입력해주세요.");
+                            }
+                        } 
+                        break;
+                    case 3:
+                    	activateUser(connection, custid);
+                    	System.out.println("정상적으로 복구되었습니다.");
+                    	break;
+                    case 4:
+                        System.out.println("이전화면으로 돌아갑니다.");
+                        break;
+                    default:
+                        System.out.println("메뉴를 다시 선택해주세요.");
+                }
+            } 
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    
 
 
 	public void retrieveAllUsers(Connection connection) {
